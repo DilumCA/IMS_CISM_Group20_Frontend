@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Internsidebar from "../../components/common/Internsidebar";
 import Header from "../../components/common/Header";
+import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import { BASE_URL } from "../../config";
 import { useNavigate } from "react-router-dom";
@@ -28,18 +29,28 @@ import officeImage from '../../assets/office.png';
 export default function InternDashboard() {
   const colors = tokens;
   const [data, setData] = useState([]);
+  const token = localStorage.getItem("token");
+  const decodedToken = jwtDecode(token);
   const [open, setOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const userRole = decodedToken.role;
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  if (userRole !== "intern") {
+    return null; // Do not render the component
+  }
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
     setLoading(true);
-    const response = await axios.get(`${BASE_URL}task`, { params: { userId: localStorage.getItem('userId') } });
+    const response = await axios.get(`${BASE_URL}task`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const responseData = Array.isArray(response.data)
       ? response.data
       : [response.data];
@@ -56,7 +67,11 @@ export default function InternDashboard() {
   console.log(`Done Tasks: ${doneTasks}`);
 
 const fetchUserData = () => {
-  axios.get(`${BASE_URL}user`, { params: { userId: localStorage.getItem('userId') } })
+  axios.get(`${BASE_URL}user`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
   .then((result) => {
       setData(result.data.user);
       console.log(result.data.user);
@@ -66,7 +81,7 @@ const fetchUserData = () => {
 
 useEffect(() => {
   fetchUserData();
-}, []); // Assuming `token` is a dependency for this effect
+}, [token]); // Assuming `token` is a dependency for this effect
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -75,7 +90,11 @@ useEffect(() => {
     try {
       const response = await axios.delete(
         `${BASE_URL}schedule/${eventId}`,
-        { params: { userId: localStorage.getItem('userId') } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (response.status === 200) {
         setData((prevData) => ({

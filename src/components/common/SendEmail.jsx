@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { BASE_URL } from '../../config';
 
 const EmailForm = () => {
+  const token = localStorage.getItem('token');
   const [data, setData] = useState({
     email: '',
     subject: '',
@@ -27,7 +28,9 @@ const EmailForm = () => {
     }
 
     axios
-      .post(`${BASE_URL}sendUserToEmail`, { ...data, senderEmail: localStorage.getItem('userEmail') || '' })
+      .post(`${BASE_URL}sendUserToEmail`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then((response) => {
         Swal.fire({
           position: 'top',

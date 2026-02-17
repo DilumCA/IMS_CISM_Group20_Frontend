@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 import Adminsidebar from "./AdminSidebar";
 import Managersidebar from "./Managersidebar";
 import Mentorsidebar from "./Mentorsidebar";
@@ -34,6 +35,7 @@ import { CircularProgress } from "@mui/material";
 import { useUserData } from '../Contexts/UserContext.jsx';
 
 export default function Profile() {
+  const [role, setRole] = useState("");
   const [data, setData] = useState({
     fname: "",
     lname: "",
@@ -45,12 +47,36 @@ export default function Profile() {
     employmentType: ''
   });
   const [originalData, setOriginalData] = useState({});
-  const { fetchUserData, data: userData } = useUserData();
+  const { fetchUserData } = useUserData();
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [progress, setProgress] = useState(0);
+  const token = localStorage.getItem('token');
   const [oldImagePath, setOldImagePath] = useState(null);
-  const role = userData?.role || '';
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+ 
+  if (userRole === 'intern') {
+    Swal.fire({
+      text: 'You do not have permission to access this function.',
+      icon: 'error',
+      width: '400px',
+      customClass: {
+        container: 'my-swal',
+        confirmButton: 'my-swal-button' 
+      }
+    });
+   
+    return null; // Do not render the component
+  }
+
+  useEffect(() => {
+  
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      setRole(decodedToken.role);
+    }
+  }, []);
 
   const getSidebar = () => {
     switch (role) {
@@ -66,7 +92,6 @@ export default function Profile() {
         return null;
     }
   };
-
   useEffect(() => {
     if (image) {
       uploadFile();
@@ -77,7 +102,9 @@ export default function Profile() {
   useEffect(() => {
   
     axios
-      .get(`${BASE_URL}user`, { params: { userId: localStorage.getItem('userId') } })
+      .get(`${BASE_URL}user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then((result) => {
         setData(result.data.user);
         setOriginalData(result.data.user);
@@ -131,7 +158,9 @@ export default function Profile() {
           console.log(imageUrl);
          
           axios
-             .put(`${BASE_URL}uploadImage`,{imageUrl:downloadURL, userId: localStorage.getItem('userId')})
+             .put(`${BASE_URL}uploadImage`,{imageUrl:downloadURL}, {
+               headers: { Authorization: `Bearer ${token}` },
+             })
              .then((response) => {
                 console.log(response.data.msg);
                 fetchUserData();
@@ -167,7 +196,9 @@ const handleSubmit = (e) => {
     const { imageUrl, ...restOfData } = data;
     //other details
    axios
-    .put(`${BASE_URL}updateuser`, { ...restOfData, userId: localStorage.getItem('userId') })
+    .put(`${BASE_URL}updateuser`, restOfData, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     .then((response) => {
       Swal.fire({ position: "top", text: response.data.msg 
       ,customClass: {container: 'my-swal',

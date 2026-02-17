@@ -5,6 +5,7 @@ import { BASE_URL } from '../../config';
 import axios from 'axios';
 import { Card, Box, Typography, Divider, Stack ,CardActions, Button } from '@mui/joy';
 import { TableRow, TableCell, Table,TableBody,TableContainer,TableHead } from '@mui/material';
+import { jwtDecode } from "jwt-decode";
 import VerifiedIcon from '@mui/icons-material/Verified';
 import Swal from "sweetalert2";
 import TablePagination from '@mui/material/TablePagination';
@@ -21,6 +22,13 @@ function ProjectdoneListToApprove() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [verifingId, setVerifingId] = useState(null);
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+
+   if(userRole !== 'mentor'){
+      return null; // Do not render the component
+    }
 
     const handleChangePage = (event, newPage) => {
       setPage(newPage);
@@ -34,7 +42,9 @@ function ProjectdoneListToApprove() {
 
   useEffect((taskId) => {
     axios
-      .get(`${BASE_URL}taskNotify`, { params: { email: localStorage.getItem('userEmail') } }) 
+      .get(`${BASE_URL}taskNotify`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }) 
       .then(response => {
         console.log(response.data);
         const sortedTasks = response.data.sort((a, b) => a.isVerified - b.isVerified);
@@ -63,7 +73,9 @@ function ProjectdoneListToApprove() {
 
       const isVerified = { isVerified: true };
      axios
-      .put(`${BASE_URL}taskVerify/${taskId}`, isVerified)
+      .put(`${BASE_URL}taskVerify/${taskId}`, isVerified,{
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then(response => {
         console.log(`Task ${taskId} has been verified.`);
         console.log(response);
@@ -108,7 +120,9 @@ function ProjectdoneListToApprove() {
       if (result.value) {
      const isVerified = { isVerified: false };
     axios
-      .put(`${BASE_URL}taskVerify/${taskId}`, isVerified)
+      .put(`${BASE_URL}taskVerify/${taskId}`, isVerified,{
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then(response => {
         console.log(`Task ${taskId} has been reject.`);
         console.log(response);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { KJUR } from "jsrsasign";
 import IconButton from "@mui/material/IconButton";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -18,19 +19,35 @@ import CardContent from '@mui/material/CardContent';
 import { Typography, Divider, Grid, InputBase, Avatar, Box, Button } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { BASE_URL } from '../../config';
+import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
 
 function EvaluationinternListMentor() {
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
   const [refreshKey, setRefreshKey] = useState(0);
   const [rows, setRows] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedIntern, setSelectedIntern] = useState(null);
 
+  if (userRole !== 'mentor') {
+    return null; // Do not render the component
+  }
+
   useEffect(() => {
     const fetchMentorDetails = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}checkMentor`, { params: { userId: localStorage.getItem('userId') } });
+        const token = localStorage.getItem("token");
+        const decoded = KJUR.jws.JWS.parse(token);
+        const userId = decoded.payloadObj.id;
+
+        const response = await axios.get(`${BASE_URL}checkMentor`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         setRows(response.data);
         setFilteredData(response.data);
       } catch (err) {

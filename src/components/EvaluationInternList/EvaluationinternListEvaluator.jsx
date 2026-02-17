@@ -7,6 +7,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import { KJUR } from 'jsrsasign';
+import { jwtDecode } from "jwt-decode";
 import IconButton from '@mui/material/IconButton';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -27,15 +29,30 @@ import { Avatar, Box, Button } from '@mui/material';
 
 function EvaluationinternListEvaluator() {
   const [rows, setRows] = useState([]);
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
   const [open, setOpen] = useState(false);
   const [selectedIntern, setSelectedIntern] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  if (userRole !== 'evaluator') {
+    return null;
+  }
+
   useEffect(() => {
     const fetchInternDetails = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}getInternsByEvaluator`, { params: { userId: localStorage.getItem('userId') } });
+        const token = localStorage.getItem('token');
+        const decoded = KJUR.jws.JWS.parse(token);
+        const userId = decoded.payloadObj.id;
+
+        const response = await axios.get(`${BASE_URL}getInternsByEvaluator`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         console.log(response.data);
         setRows(response.data);
         setFilteredData(response.data);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { KJUR } from "jsrsasign";
 import { BASE_URL } from "../../config";
 import "./EvaluationFormManager.css";
 import {
@@ -30,8 +31,18 @@ function Internpdf() {
   const [showModal, setShowModal] = useState(false);
   const [pdfDataUrl, setPdfDataUrl] = useState("");
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decoded = KJUR.jws.JWS.parse(token);
+      const userId = decoded.payloadObj.id;
+
       axios
-        .get(`${BASE_URL}getCommentsById`, { params: { userId: localStorage.getItem('userId') } })
+
+        .get(`${BASE_URL}getCommentsById`, {
+          headers: {
+            Authorization: `Bearer ${token}`, // Add authorization header
+          },
+        })
         .then((response) => {
           const {
             comment_evaluator,
@@ -60,6 +71,7 @@ function Internpdf() {
           });
         })
         .catch((error) => console.error("Fetching comments failed:", error));
+    }
   }, []);
 
   const generatePDFBlob = async () => {

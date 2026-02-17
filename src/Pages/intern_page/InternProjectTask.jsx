@@ -31,6 +31,7 @@ import IconButton from "@mui/joy/IconButton";
 import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
 import Card from "@mui/joy/Card";
+import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
 import TablePagination from '@mui/material/TablePagination';
 import InternPdf from "../../components/project/InernTaskPdf";
@@ -49,7 +50,15 @@ function TaskTable() {
   
     const [open, setOpen] = useState(false);
     const [currentTask, setCurrentTask] = useState(null);
+    const token = localStorage.getItem('token');
+    const decodedToken = jwtDecode(token);
+    const userRole = decodedToken.role;
+    const internID = decodedToken.id;
+   console.log(internID);
 
+   if (userRole !== 'intern') {
+      return null; // Do not render the component
+    }
     const handleClickOpen = (task) => {
       setCurrentTask(task);
       setOpen(true);
@@ -104,7 +113,11 @@ function TaskTable() {
 
     // Function to fetch tasks
     const fetchTasks = async () => {
-      const response = await axios.get(`${BASE_URL}task`, { params: { userId: localStorage.getItem('userId') } });
+      const response = await axios.get(`${BASE_URL}task`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const responseData = Array.isArray(response.data)
         ? response.data
         : [response.data];
@@ -128,7 +141,11 @@ function TaskTable() {
       } 
     
       try {
-        await axios.post(`${BASE_URL}task`, { ...data, userId: localStorage.getItem('userId') });
+        await axios.post(`${BASE_URL}task`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setData({ title: "" });
         fetchTasks();
       } catch (error) {
@@ -171,7 +188,11 @@ function TaskTable() {
       }).then((result) => {
         if (result.value) {
           axios
-            .delete(`${BASE_URL}task/${id}`)
+            .delete(`${BASE_URL}task/${id}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            })
             .then(() => {
               Swal.fire({
                 title: "Deleted!",
@@ -213,7 +234,11 @@ function TaskTable() {
     console.log(data);
        
       await axios
-        .put(`${BASE_URL}task/${id}`, data)
+        .put(`${BASE_URL}task/${id}`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then((response) => {
           Swal.fire({ position: "top",
           text:response.data.msg,
@@ -245,7 +270,11 @@ function TaskTable() {
   
       // Send the PUT request
       await axios
-        .put(`${BASE_URL}task/${id}`, data)
+        .put(`${BASE_URL}task/${id}`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then((response) => {
           console.log(response.data);
           setTasks(

@@ -8,6 +8,7 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import InternPdf from '../../components/EvaluationFormNew/InternPdf';
 import { BASE_URL } from '../../config';
+import { KJUR } from 'jsrsasign';
 
 export default function InternEvaluation() {
   const [isEvaluated, setIsEvaluated] = useState(false);
@@ -15,8 +16,21 @@ export default function InternEvaluation() {
 useEffect(() => {
   const fetchEvaluationStatus = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}getCommentsById`, { params: { userId: localStorage.getItem('userId') } });
+      const token = localStorage.getItem('token');
+      if (token) {
+        const decoded = KJUR.jws.JWS.parse(token);
+        const userId = decoded.payloadObj.id;
+        console.log(userId);
+
+
+        const response = await axios.get(`${BASE_URL}getCommentsById`, {
+
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         setIsEvaluated(response.data.isEvaluated);
+      }
     } catch (error) {
       console.error('Error fetching evaluation status:', error);
     }

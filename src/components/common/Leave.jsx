@@ -26,19 +26,28 @@ const LeaveManagement = () => {
         leaveDate: '',
         reason: '',
     });
+    const token = localStorage.getItem('token');
 
 
     useEffect(() => {
-      axios.get(`${BASE_URL}allusers`)
+      axios.get(`${BASE_URL}allusers`, { 
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((result) => {
         const fetchedUsers = result.data.users;
         setUsers(fetchedUsers);
       })
       .catch((err) => console.log(err));
-    }, []);
+    }, [token]);
 
     useEffect(() => {
-      axios.get(`${BASE_URL}getLeaveApplications`)
+      axios.get(`${BASE_URL}getLeaveApplications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((result) => {
         const today = new Date();
         const leaveApplications = result.data.leaveApplications
@@ -55,7 +64,7 @@ const LeaveManagement = () => {
         setLeaveApplications(leaveApplications);
       })
       .catch((err) => console.log(err));
-    }, []);
+    }, [token]);
 
     const handleChangePage = (event, newPage) => {
       setPage(newPage);

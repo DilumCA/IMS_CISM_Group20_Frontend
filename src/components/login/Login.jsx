@@ -12,6 +12,7 @@ import Typography from '@mui/material/Typography';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import axios from 'axios';
 import {useNavigate } from 'react-router-dom';
+import  {jwtDecode} from 'jwt-decode';
 import image from '../../assets/photo1.jpeg'
 import {BASE_URL} from '../../config';
 import Swal from "sweetalert2";
@@ -29,6 +30,7 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] =useState(null)
     const navigate = useNavigate()
+    axios.defaults.withCredentials = true;
  
   
     const handleSubmit = (event) => {
@@ -46,17 +48,11 @@ function Login() {
         
           if(result.data) {
             setLoading(false);
-            // Get role directly from response
-            const role = result.data.role;
-            const userId = result.data.userId;
-
-            // Store userId for subsequent API calls
-            if (userId) {
-              localStorage.setItem('userId', userId);
-            }
-            // Store role and email for subsequent use
-            localStorage.setItem('userRole', role);
-            localStorage.setItem('userEmail', values.email);
+           // Swal.fire({ position: "top", text: result.data.msg });
+            const token = result.data.token;
+            localStorage.setItem("token", token);
+            const decodedToken = jwtDecode(token);
+            const role = decodedToken.role;
     
             if(role === 'admin') {
               navigate('/AdminDashboard');

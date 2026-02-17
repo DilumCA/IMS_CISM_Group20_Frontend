@@ -9,6 +9,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 //import listPlugin from "@fullcalendar/list";
 import { Box, useTheme, Typography, Modal, TextField, Button } from "@mui/material";
 import { tokens } from "../../Pages/admin_page/theme/theme";
+import { jwtDecode } from "jwt-decode";
 
 
 const EventModal = ({ open, onClose, onSave }) => {
@@ -61,14 +62,25 @@ const EventModal = ({ open, onClose, onSave }) => {
 };
 
 export default function Calendar({ fetchUserData }) {
+  const [role, setRole] = useState("");
   const [currentEvents, setCurrentEvents] = useState([]);
   const theme = useTheme();
   const colors = tokens;
+  const [token, setToken] = useState("");
   const [data, setData] = useState(null);
   const [userId, setUserId] = useState(null);
   const calendarRef = useRef(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setToken(token);
+      const decodedToken = jwtDecode(token);
+      setRole(decodedToken.role);
+    }
+  }, []);
 
 
 
@@ -80,7 +92,8 @@ const createWorkSchedule = async (newEvent) => {
   try {
     const response = await axios.post(`${BASE_URL}workschedule`, {
       schedules: [newEvent],
-      userId: localStorage.getItem('userId'),
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     if (response.data.updatedUser) {
@@ -96,7 +109,7 @@ const createWorkSchedule = async (newEvent) => {
   const deleteWorkSchedule = async (eventId) => {
     try {
       const response = await axios.delete(`${BASE_URL}schedule/${eventId}`, {
-        params: { userId: localStorage.getItem('userId') }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.status === 200) {

@@ -115,8 +115,14 @@ function Adduser({ onUserAdded }) {
       return;
     }
 
+    const token = localStorage.getItem("token");
+
     axios
-      .post(`${BASE_URL}register`, data)
+      .post(`${BASE_URL}register`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((result) => {
         if (result.data) {
           Swal.fire({

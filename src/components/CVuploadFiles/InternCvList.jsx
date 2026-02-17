@@ -32,12 +32,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import Swal from "sweetalert2";
 import EditCVfiles from "./EditCVfiles";
 import ViewCVfiles from "./ViewCVfiles";
+import { jwtDecode } from "jwt-decode";
 
 export default function InternCvList({ rows }) {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const token = localStorage.getItem('token');
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -48,13 +50,21 @@ export default function InternCvList({ rows }) {
     setPage(0);
   };
 
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+  if (userRole !== 'admin') {
+    return null; // Do not render the component
+  }
+
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = () => {
     axios
-      .get(`${BASE_URL}users`)
+      .get(`${BASE_URL}users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then((result) => {
         const internData = result.data.users.filter(user => user.role === 'intern').map(user => ({
           ...user,
@@ -125,7 +135,12 @@ export default function InternCvList({ rows }) {
 
   const deleteFromDB = async (id) => {
     try {
-      await axios.put(`${BASE_URL}${id}/deletecv`, {});
+      const token = localStorage.getItem('token');
+      await axios.put(`${BASE_URL}${id}/deletecv`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       // Remove the deleted item from the data array
       setData(data.filter((item) => item._id !== id));
     } catch (error) {

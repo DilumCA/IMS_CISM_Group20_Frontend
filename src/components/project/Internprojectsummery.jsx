@@ -40,6 +40,7 @@ const Internprojectsummery = forwardRef((props, ref) => {
   const [changeRoleId, setChangeRoleId] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const token = localStorage.getItem("token");
 
 
 
@@ -51,7 +52,11 @@ const Internprojectsummery = forwardRef((props, ref) => {
 
   // Function to fetch tasks
   const fetchTasks = async () => {
-    const response = await axios.get(`${BASE_URL}task`, { params: { userId: localStorage.getItem('userId') } });
+    const response = await axios.get(`${BASE_URL}task`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const responseData = Array.isArray(response.data)
       ? response.data
       : [response.data];

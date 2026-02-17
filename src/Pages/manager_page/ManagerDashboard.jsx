@@ -28,6 +28,7 @@ import { tokens } from "../admin_page/theme/theme";
 import Calendar from '../../components/common/Calendar';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import LeaveManagement from '../../components/common/Leave';
+import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
 import officeImage from '../../assets/office.png';
 
@@ -59,6 +60,17 @@ export default function ManagerDashboard() {
   const [managerData, setManagerData] = useState([]);
   const [adminData, setAdminData] = useState([]);
 
+  const token = localStorage.getItem('token');
+
+
+    
+
+   const decodedToken = jwtDecode(token);
+   const userRole = decodedToken.role;
+   if (userRole !== 'manager') {
+     return null; // Do not render the component
+   }
+
   const [userCount, setUserCount] = useState(0);
   const [internCount, setInternCount] = useState(0);
   const [mentorCount, setMentorCount] = useState(0);
@@ -68,7 +80,11 @@ export default function ManagerDashboard() {
   const [leaveCount, setLeaveCount] = useState(0);
 
   const fetchUserData = () => {
-    axios.get(`${BASE_URL}user`, { params: { userId: localStorage.getItem('userId') } })
+    axios.get(`${BASE_URL}user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
     .then((result) => {
         setData(result.data.user);
         let leaveCount = result.data.user.leaveApplications.filter(application => application.status === 'Approved').length;
@@ -82,13 +98,17 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     fetchUserData();
-  }, []); // Dependency array to re-fetch when token changes
+  }, [token]); // Dependency array to re-fetch when token changes
   
 
 
     // set the date 
     useEffect(() => {
-      axios.get(`${BASE_URL}allusers`)
+      axios.get(`${BASE_URL}allusers`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((result) => {
         const fetchedUsers = result.data.users;
         setUsers(fetchedUsers);
@@ -114,7 +134,7 @@ export default function ManagerDashboard() {
         setManagerCount(fetchedManagers.length);
       })
       .catch((err) => console.log(err));
-    }, []);
+    }, [token]);
 
       
       useEffect(() => {
@@ -183,7 +203,9 @@ export default function ManagerDashboard() {
         const deleteSchedule = async (eventId) => {
           try {
             const response = await axios.delete(`${BASE_URL}schedule/${eventId}`, {
-              params: { userId: localStorage.getItem('userId') }
+              headers: {
+                'Authorization': `Bearer ${token}` 
+              }
             });
             console.log(response); 
             if (response.status === 200) {
@@ -242,10 +264,18 @@ export default function ManagerDashboard() {
       
         const handleSubmit = () => {
           if (validateForm()) {
-            axios.post(`${BASE_URL}applyLeave`, { ...formData, userId: localStorage.getItem('userId') })
+            axios.post(`${BASE_URL}applyLeave`, formData, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            })
             .then(() => {
               handleLeaveClose();
-              axios.get(`${BASE_URL}getLeaveApplications`)
+              axios.get(`${BASE_URL}getLeaveApplications`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
               .then((result) => {
                 const leaveApplications = result.data.leaveApplications.flatMap(application => ({
                   ...application,

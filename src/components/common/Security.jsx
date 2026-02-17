@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 import Adminsidebar from "./AdminSidebar";
 import Internsidebar from "./Internsidebar";
 import Managersidebar from "./Managersidebar";
@@ -17,17 +18,23 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import axios from "axios";
 import { BASE_URL } from '../../config';
 import Swal from "sweetalert2";
-import { useUserData } from '../Contexts/UserContext.jsx';
 const defaultTheme = createTheme();
 
 export default function Security() {
+  const [role, setRole] = useState("");
   const [values, setValues] = useState({
     Newpassword: "",
     Oldpassword: "",
     Confirmpassword: "",
   });
-  const { data: userData } = useUserData();
-  const role = userData?.role || '';
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      setRole(decodedToken.role);
+    }
+  }, []);
 
   const getSidebar = () => {
     switch (role) {
@@ -72,8 +79,13 @@ if (!passwordRegex.test(values.Newpassword)) {
 
 
 
+    const token = localStorage.getItem("token");
     axios
-      .put(`${BASE_URL}secure`, { ...values, userId: localStorage.getItem('userId') })
+      .put(`${BASE_URL}secure`, values, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
       .then((result) => {
         if (result.data) {

@@ -52,9 +52,7 @@ export default function Header() {
      
     }).then((result) => {
       if (result.value) {
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userRole');
+        localStorage.removeItem('token');
         eraseUserData();
         navigate('/');
        

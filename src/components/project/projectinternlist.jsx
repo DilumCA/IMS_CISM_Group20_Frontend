@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { BASE_URL } from '../../config';
+import { jwtDecode } from "jwt-decode";
 import {
   Table,
   TableBody,
@@ -36,11 +37,23 @@ function internlist({ rows }) {
   const [isComplete, setIsComplete] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   {/* get details in database */}
-
+  const token = localStorage.getItem('token');
+  useEffect(() => {
+    //const token = localStorage.getItem("token");
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      setRole(decodedToken.role);
+    }
+  }, []);
+ 
   useEffect(() => {
     setIsLoading(true);
     axios
-      .get(`${BASE_URL}interns`)
+      .get(`${BASE_URL}interns`,{
+        headers: {
+        Authorization: `Bearer ${token}`,
+    },
+  })
 
       .then((result) => {
         console.log(result.data.interns); 

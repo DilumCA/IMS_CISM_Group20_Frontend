@@ -27,11 +27,17 @@ function ChangeRole({ userid,onRoleChange }) {
   const [changeRoleId, setChangeRoleId] = useState(null);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem('token');
+
 
   useEffect(() => {
     if (open) {
     axios
-      .get(`${BASE_URL}user/${userid}`)
+      .get(`${BASE_URL}user/${userid}`,{
+        headers: {
+        Authorization: `Bearer ${token}`,
+    },
+  })
 
       .then((result) => {
         setData(result.data.user);
@@ -72,7 +78,12 @@ function ChangeRole({ userid,onRoleChange }) {
   
     axios
       .put(`${BASE_URL}users/${userid}`, 
-      {role: selectedRole})
+      {role: selectedRole},
+      {headers: {
+         Authorization: `Bearer ${token}` 
+       },
+      },
+       )
       .then((result) => {
         setData({ ...data, role: selectedRole });
       

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 import Internsidebar from "../../components/common/Internsidebar";
 import Header from "../../components/common/Header";
 import AspectRatio from '@mui/joy/AspectRatio';
@@ -36,6 +37,12 @@ import { useUserData } from '../../components/Contexts/UserContext';
 
 export default function InternProfile() {
  
+ 
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+  
+
   const [data, setData] = useState({
     fname: "",
     lname: "",
@@ -58,6 +65,19 @@ export default function InternProfile() {
   const [selectedMentorEmail, setSelectedMentorEmail] = useState("");
   const { fetchUserData } = useUserData();
 
+  if (userRole !== 'intern') {
+    Swal.fire({
+      text: 'You do not have permission to access this function.',
+      icon: 'error',
+      width: '400px',
+      customClass: {
+        container: 'my-swal',
+        confirmButton: 'my-swal-button' 
+      }
+    });
+   
+    return null; // Do not render the component
+  }
   useEffect(() => {
     if (image) {
       uploadFile();
@@ -68,7 +88,9 @@ export default function InternProfile() {
  useEffect(() => {
    
     axios
-      .get(`${BASE_URL}user`, { params: { userId: localStorage.getItem('userId') } })
+      .get(`${BASE_URL}user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then((result) => {
         setData(result.data.user);
         setOriginalData(result.data.user);
@@ -124,7 +146,9 @@ export default function InternProfile() {
     console.log(imageUrl);
      
       axios
-         .put(`${BASE_URL}uploadImage`,{imageUrl:downloadURL, userId: localStorage.getItem('userId')})
+         .put(`${BASE_URL}uploadImage`,{imageUrl:downloadURL}, {
+           headers: { Authorization: `Bearer ${token}` },
+         })
          .then((response) => {
             console.log(response.data.msg);
             fetchUserData();
@@ -164,7 +188,9 @@ const handleSubmit = (e) => {
     //other details
     const { imageUrl, ...restOfData } = data;
  axios
-    .put(`${BASE_URL}updateinterns`, { ...restOfData, userId: localStorage.getItem('userId') })
+    .put(`${BASE_URL}updateinterns`, restOfData, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     .then((response) => {
 
       Swal.fire({ position: "top", text: response.data.msg 

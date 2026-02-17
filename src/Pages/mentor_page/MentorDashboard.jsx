@@ -27,6 +27,7 @@ import { tokens } from "../admin_page/theme/theme";
 import Calendar from '../../components/common/Calendar';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import LeaveManagement from '../../components/common/Leave';
+import { jwtDecode } from "jwt-decode";
 import officeImage from '../../assets/office.png';
 
 export default function MentorDashboard()  {
@@ -60,9 +61,21 @@ export default function MentorDashboard()  {
   const [managerCount, setManagerCount] = useState(0);
   const [adminCount, setAdminCount] = useState(0);
   const [leaveCount, setLeaveCount] = useState(0);
+
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role; 
         
+   if(userRole !== 'mentor'){
+      return null; // Do not render the component
+    }
+
 const fetchUserData = () => {
-  axios.get(`${BASE_URL}user`, { params: { userId: localStorage.getItem('userId') } })
+  axios.get(`${BASE_URL}user`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
   .then((result) => {
       setData(result.data.user);
       let leaveCount = result.data.user.leaveApplications.filter(application => application.status === 'Approved').length;
@@ -74,12 +87,16 @@ const fetchUserData = () => {
 };
 // Inside your component
 useEffect(() => {
-  fetchUserData(setData);
-}, [setData]);
+  fetchUserData(token, setData);
+}, [token, setData]);
 
     // set the date 
     useEffect(() => {
-      axios.get(`${BASE_URL}allusers`)
+      axios.get(`${BASE_URL}allusers`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((result) => {
         const fetchedUsers = result.data.users;
         setUsers(fetchedUsers);
@@ -105,7 +122,7 @@ useEffect(() => {
         setManagerCount(fetchedManagers.length);
       })
       .catch((err) => console.log(err));
-    }, []);
+    }, [token]);
 
       
       useEffect(() => {
@@ -170,7 +187,9 @@ useEffect(() => {
         const deleteSchedule = async (eventId) => {
           try {
             const response = await axios.delete(`${BASE_URL}schedule/${eventId}`, {
-              params: { userId: localStorage.getItem('userId') }
+              headers: {
+                'Authorization': `Bearer ${token}` 
+              }
             });
             console.log(response); 
             if (response.status === 200) {
@@ -226,10 +245,18 @@ useEffect(() => {
       
         const handleSubmit = () => {
           if (validateForm()) {
-            axios.post(`${BASE_URL}applyLeave`, { ...formData, userId: localStorage.getItem('userId') })
+            axios.post(`${BASE_URL}applyLeave`, formData, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            })
             .then(() => {
               handleLeaveClose();
-              axios.get(`${BASE_URL}getLeaveApplications`)
+              axios.get(`${BASE_URL}getLeaveApplications`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
               .then((result) => {
                 const leaveApplications = result.data.leaveApplications.flatMap(application => ({
                   ...application,

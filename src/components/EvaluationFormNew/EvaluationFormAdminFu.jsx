@@ -54,7 +54,7 @@ function EvaluationFormAdminFu({
   const [jobPerformanceCriteriasMentor, setJobPerformanceCriteriasMentor] = useState([]);
   const [coreValuesCriteriasMentor, setCoreValuesCriteriasMentor] = useState([]);
   const [dateError, setDateError] = useState(false);
-
+  const token = localStorage.getItem('token'); 
   const handleSave = () => {
     if (!evaluationDate) {
       setDateError(true);
@@ -130,6 +130,10 @@ function EvaluationFormAdminFu({
         jobPerformanceCriteriasMentor,
         coreValuesCriteriasMentor,
         evaluateBefore: evaluationDate,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       })
       .then((response) => {
         console.log(response.data);

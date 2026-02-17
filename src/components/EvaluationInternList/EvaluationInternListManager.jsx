@@ -33,12 +33,17 @@ function EvaluationInternListManager() {
   const [selectedEvaluationFormDetails, setSelectedEvaluationFormDetails] =
     useState(null); // New state
   const [mentor, setMentor] = useState(null);
+  const token = localStorage.getItem("token");
   const [filteredRows, setFilteredRows] = useState([]); // Add this state variable
 
   useEffect(() => {
     const fetchInternDetails = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}getInternsForManager`);
+        const response = await axios.get(`${BASE_URL}getInternsForManager`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
         console.log(response.data);
         setRows(response.data);
         setFilteredRows(response.data); // Initialize filteredRows with all data

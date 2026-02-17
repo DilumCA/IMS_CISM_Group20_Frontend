@@ -27,9 +27,9 @@ import Swal from "sweetalert2";
 import Select from "@mui/joy/Select";
 import Option from "@mui/joy/Option";
 import { MenuItem } from "@mui/material";
+import { jwtDecode } from "jwt-decode";
 
 function interndetails({ internId,onDataChange }) {
-  const userRole = localStorage.getItem('userRole');
   const [open, setOpen] = useState(false);
   const [mentors, setMentors] = useState([]);
   const [selectedMentorName, setSelectedMentorName] = useState("");
@@ -46,12 +46,23 @@ function interndetails({ internId,onDataChange }) {
     mentor: "", 
   });
   const [imageUrl, setImageUrl] = useState(null);
+  const token = localStorage.getItem("token");
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+
+  if (userRole === 'intern') {
+     return null; // Do not render the component
+   }
 
   useEffect(() => {
     if (open) {
      
       axios
-        .get(`${BASE_URL}interns/${internId}`)
+        .get(`${BASE_URL}interns/${internId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then((result) => {
           setData(result.data.intern);
           setImageUrl(result.data.intern.imageUrl);
@@ -129,8 +140,13 @@ function interndetails({ internId,onDataChange }) {
       return;
     }
 
+    const token = localStorage.getItem("token");
     axios
-      .put(`${BASE_URL}interns/${internId}`, data)
+      .put(`${BASE_URL}interns/${internId}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((response) => {
         Swal.fire({
           position: "top",
@@ -166,7 +182,11 @@ function interndetails({ internId,onDataChange }) {
   // Fetch mentors from the backend
   useEffect(() => {
     axios
-      .get(`${BASE_URL}getAllMentors`)
+      .get(`${BASE_URL}getAllMentors`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((response) => {
         setMentors(response.data); // Assuming response.data is an array of mentor objects
        

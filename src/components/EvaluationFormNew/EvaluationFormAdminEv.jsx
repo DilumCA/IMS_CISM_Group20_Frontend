@@ -15,7 +15,13 @@ function EvaluationFormAdminEv({ evaluationFormDetailsId,handleSave, additionalC
 
 
     useEffect(() => {
-      axios.get(`${BASE_URL}evaluators`)
+      const token = localStorage.getItem("token");
+    
+      axios.get(`${BASE_URL}evaluators`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then(response => {
         setEvaluators(response.data); // response.data should be an array of evaluator names
       })

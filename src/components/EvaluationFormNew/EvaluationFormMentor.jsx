@@ -36,6 +36,9 @@ function EvaluationFormMentor({
   const [overallPerformanceRating, setOverallPerformanceRating] = useState(0);
 
 
+  const token = localStorage.getItem("token");
+  // ...
+
 
   const onSave = async () => {
     if (!validateInputs()) {
@@ -54,6 +57,10 @@ function EvaluationFormMentor({
         action_taken_mentor: actionTakenMentor,
         comment_mentor: commentMentor,
         
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
   
       if (response.status === 200) {
@@ -139,7 +146,12 @@ function EvaluationFormMentor({
         try {
 
           const response = await axios.get(
-            `${BASE_URL}getReviewDetailsById/${internId}`
+            `${BASE_URL}getReviewDetailsById/${internId}`, 
+            {
+              headers: {
+                "Authorization": `Bearer ${token}`
+              }
+            }
           );
       
           const data = response.data;
@@ -161,7 +173,7 @@ function EvaluationFormMentor({
     };
 
     fetchEvaluationData();
-  }, [isEvaluated, isMentorFormFilled, internId]);
+  }, [isEvaluated, isMentorFormFilled, internId, token]);
   return (
     <div>
       <Typography variant="h4" align="center" style={{ margin: "20px 0" }}>

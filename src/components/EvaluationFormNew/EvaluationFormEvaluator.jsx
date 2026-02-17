@@ -21,7 +21,7 @@ function EvaluationFormEvaluator({ internId, internName, jobPerformanceCriterias
   const [coreValuesRatings, setCoreValuesRatings] = useState([]);
   const [overallPerformanceRating, setOverallPerformanceRating] = useState(null);
   const [comment, setComment] = useState('');
-
+  const token = localStorage.getItem("token");
   // Calculate and format the overallPerformanceRating just before the return statement
   const formattedOverallPerformanceRating = overallPerformanceRating !== null ? overallPerformanceRating.toFixed(2) : 'N/A';
   const [jobPerformanceMeanScore, setJobPerformanceMeanScore] = useState(0); // Example initialization
@@ -76,7 +76,13 @@ if (coreValuesRatings.some(rating => rating === 0)) {
     };
   
     try {
-      const response = await axios.post(`${BASE_URL}postEvaluatorResultById/${internId}`, data);
+      const response = await axios.post(`${BASE_URL}postEvaluatorResultById/${internId}`, data, {
+        headers: {
+
+
+          "Authorization": `Bearer ${token}`,
+        },
+      });
   
       handleClose();
     } catch (error) {
@@ -116,7 +122,11 @@ if (coreValuesRatings.some(rating => rating === 0)) {
     const fetchEvaluationData = async () => {
       if (isEvaluated) {
         try {
-          const response = await axios.get(`${BASE_URL}getReviewDetailsById/${internId}`);
+          const response = await axios.get(`${BASE_URL}getReviewDetailsById/${internId}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+          });
 
           const data = response.data;
           // Assuming the API returns an object with job_performance_scores_evaluator, core_values_scores_evaluator, overall_performance_evaluator, and comment_evaluator
@@ -131,7 +141,7 @@ if (coreValuesRatings.some(rating => rating === 0)) {
     };
 
     fetchEvaluationData();
-  }, [isEvaluated, internId]);
+  }, [isEvaluated, internId, token]);
   
   
 

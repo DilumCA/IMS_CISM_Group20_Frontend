@@ -29,6 +29,7 @@ import Swal from "sweetalert2";
 import ReviewFormAdmin from "../EvaluationFormNew/ReviewFormAdmin";
 
 function EvaluationInternList() {
+  const token = localStorage.getItem('token'); 
   const [interns, setInterns] = useState([]);
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -70,7 +71,11 @@ function EvaluationInternList() {
 
   useEffect(() => {
     axios
-      .get(`${BASE_URL}Evinterns`)
+      .get(`${BASE_URL}Evinterns`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
       .then((result) => {
         console.log(result.data);
         setInterns(result.data);
@@ -89,7 +94,10 @@ function EvaluationInternList() {
   const handleDelete = (id) => {
     axios
       .delete(`${BASE_URL}deleteeformData`, {
-        data: { id }
+        data: { id },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       })
       .then((response) => {
         console.log(response.data);

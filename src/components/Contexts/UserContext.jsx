@@ -9,13 +9,18 @@ export const UserProvider = ({ children }) => {
   const [data, setData] = useState(null);
 
   const fetchUserData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setData(null);
+      return;
+    }
+
     try {
-      const userId = localStorage.getItem('userId');
-      if (!userId) {
-        setData(null);
-        return;
-      }
-      const result = await axios.get(`${BASE_URL}user`, { params: { userId } });
+      const result = await axios.get(`${BASE_URL}user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setData(result.data.user);
     } catch (err) {
       console.log(err);
@@ -29,6 +34,24 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUserData();
+  }, [fetchUserData]);
+
+  useEffect(() => {
+    const handleTokenChange = () => {
+      const newToken = localStorage.getItem('token');
+      if (!newToken) {
+        setData(null);
+      } else {
+        fetchUserData();
+      }
+    };
+
+    handleTokenChange();
+    window.addEventListener('storage', handleTokenChange);
+
+    return () => {
+      window.removeEventListener('storage', handleTokenChange);
+    };
   }, [fetchUserData]);
 
   return (

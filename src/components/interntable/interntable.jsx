@@ -30,6 +30,7 @@ import Divider from "@mui/material/Divider";
 import { useNavigate } from "react-router-dom";
 import Switch from '@mui/material/Switch';
 import Interndetails from "../interntable/intern";
+import { jwtDecode } from "jwt-decode";
 import { useMediaQuery, useTheme } from '@mui/material';
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -46,9 +47,20 @@ const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   {/* get details in database */}
 
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+  if (userRole !== 'admin') {
+    return null;
+  }
+ 
   useEffect(() => {
     axios
-      .get(`${BASE_URL}interns`)
+      .get(`${BASE_URL}interns`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((result) => {
         setFilteredData(result.data.interns);
         setData(result.data.interns);

@@ -10,12 +10,16 @@ const ViewCvfiles = ({ internId}) => {
   const [cvUrl, setCvUrl] = useState(null);
   const [open, setOpen] = useState(false);
   const [changeRoleId, setChangeRoleId] = useState(null);
-
+  const token = localStorage.getItem("token");
   useEffect(() => {
     if (open) {
      
       axios
-        .get(`${BASE_URL}interns/${internId}`)
+        .get(`${BASE_URL}interns/${internId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then((result) => {
            setCvUrl(result.data.intern.cvUrl);
         

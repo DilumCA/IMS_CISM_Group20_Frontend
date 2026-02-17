@@ -29,12 +29,26 @@ function ReviewFormAdmin({ internName, mentorName, evaluationFormDetailsId, onCl
 
   useEffect(() => {
     const fetchEvaluationDetails = async () => {
+      // Corrected the token key to "token" as per your storage setup.
+      const tokenKey = 'token'; // Corrected key
+      const token = localStorage.getItem(tokenKey);
+      console.log(`Retrieved token: ${token}`); // Debugging line
+
+      if (!token) {
+        console.error(`Token is not available in local storage under key: ${tokenKey}`);
+        return;
+      }
       try {
-        const response = await axios.get(`${BASE_URL}getReviewDetailsById/${evaluationFormDetailsId}`);
+        const response = await axios.get(`${BASE_URL}getReviewDetailsById/${evaluationFormDetailsId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         setEvaluationDetails(response.data);
         console.log(response.data);
       } catch (error) {
         console.error("Failed to fetch evaluation details", error);
+        // Handle error (e.g., show an error message)
       }
     };
 

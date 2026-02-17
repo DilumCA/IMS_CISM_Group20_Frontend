@@ -31,6 +31,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Divider from "@mui/material/Divider";
 import Adduser from "./Adduser";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import CircularProgress from '@mui/material/CircularProgress';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ChangeRole from "./ChangeRole";
@@ -45,11 +46,21 @@ function Addusertable({ rows }) {
   const [deletingId, setDeletingId] = useState(null);
 
   {/* get details in database */}
+  const token = localStorage.getItem('token');
+  const decodedToken = jwtDecode(token);
+  const userRole = decodedToken.role;
+  if (userRole !== 'admin') {
+    return null; // Do not render the component
+  }
 
   useEffect(() => {
     setIsLoading(true);
     axios
-      .get(`${BASE_URL}users`)
+      .get(`${BASE_URL}users`,{
+        headers: {
+        Authorization: `Bearer ${token}`,
+    },
+  })
  
       .then((result) => {
         
@@ -95,7 +106,12 @@ function Addusertable({ rows }) {
     }).then((result) => {
       if (result.value) {
         axios
-          .delete(`${BASE_URL}users/${id}`)
+          .delete(`${BASE_URL}users/${id}`,{
+            headers: {
+            Authorization: `Bearer ${token}`,
+        }
+        
+      })
           .then((result) => {
             Swal.fire({ title: "Deleted!",
                         text: "User has been deleted.",
@@ -114,6 +130,7 @@ function Addusertable({ rows }) {
                          
                 // window.alert(err.response.data.msg);
                .then(() => {
+                localStorage.removeItem('token');
                 navigate("/");
                })
             }

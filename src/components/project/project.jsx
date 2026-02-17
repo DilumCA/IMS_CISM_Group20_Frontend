@@ -40,6 +40,7 @@ function internTaskTable({ internId }) {
   const [changeRoleId, setChangeRoleId] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const token = localStorage.getItem("token");
 
   const handleClickOpen = (task) => {
     setChangeRoleId(internId);
@@ -105,7 +106,11 @@ function internTaskTable({ internId }) {
 
   // Function to fetch tasks
   const fetchTasks = async () => {
-    const response = await axios.get(`${BASE_URL}task/${internId}`);
+    const response = await axios.get(`${BASE_URL}task/${internId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const responseData = Array.isArray(response.data)
       ? response.data
       : [response.data];

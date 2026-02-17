@@ -28,6 +28,7 @@ export default function EditCvfile({open, handleClose, internId,refreshData}) {
   const [cv, setCV] = useState(null);
   const [cvUrl, setcvUrl] = useState(null);
   const [progress, setProgress] = useState(0);
+  const token = localStorage.getItem('token');
   const [inputs , setInputs ] = useState({});
   const [oldCvPath, setOldImagePath] = useState(null);
   const {getRootProps, getInputProps} = useDropzone({
@@ -77,8 +78,11 @@ export default function EditCvfile({open, handleClose, internId,refreshData}) {
         console.log(oldCvPath);
 
         const fileData = { cvUrl: downloadURL, userId: internId };
+        const token = localStorage.getItem("token");
 
-        axios.put(`${BASE_URL}${internId}/uploadcv`, fileData)
+        axios.put(`${BASE_URL}${internId}/uploadcv`, fileData, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         .then((response) => {
           handleClose(); // Close the component immediately after request completion
           Swal.fire({
