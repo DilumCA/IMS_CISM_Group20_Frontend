@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import Adminsidebar from "./AdminSidebar";
@@ -33,6 +32,37 @@ import { storage } from "../../firebaseconfig";
 import { uuidv4 } from '@firebase/util';
 import { CircularProgress } from "@mui/material";
 import { useUserData } from '../Contexts/UserContext.jsx';
+import DOMPurify from "dompurify";
+
+// Validation functions
+const validateEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validateName = (name) =>
+  /^[a-zA-Z\s'-]{2,50}$/.test(name);
+
+const validateRole = (role) =>
+  /^[a-zA-Z0-9_-]{2,30}$/.test(role);
+
+const validateDate = (date) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(date);
+
+const validateNumber = (num) =>
+  /^\d+$/.test(num);
+
+// Sanitize input using DOMPurify and remove header-breaking chars
+const sanitizeInput = (input) => {
+  if (typeof input !== "string") return input;
+  let sanitized = DOMPurify.sanitize(input);
+  sanitized = sanitized.replace(/(\r|\n|%0a|%0d|\\r|\\n)/gi, ''); // Prevent header injection
+  return sanitized;
+};
+
+// Prevent path traversal in file uploads
+const isSafeFileName = (name) => {
+  // Only allow alphanumeric, dash, underscore, and dot
+  return /^[a-zA-Z0-9._-]+$/.test(name);
+};
 
 export default function Profile() {
   const [role, setRole] = useState("");
@@ -120,25 +150,73 @@ export default function Profile() {
     setData(originalData);
   };
 
-    // Upload file
-    const uploadFile =() => {
+  // Centralized input change handler with sanitization and validation
+  const handleInputChange = (field, value) => {
+    let sanitizedValue = sanitizeInput(value);
+    let isValid = true;
+    switch (field) {
+      case "fname":
+      case "lname":
+        isValid = validateName(sanitizedValue);
+        break;
+      case "email":
+        isValid = validateEmail(sanitizedValue);
+        break;
+      case "dob":
+        isValid = validateDate(sanitizedValue);
+        break;
+      // Add more validation as needed
+      default:
+        break;
+    }
+    if (isValid || sanitizedValue === "") {
+      setData({ ...data, [field]: sanitizedValue });
+    }
+  };
 
-      if (image === null) {
-         return;
-      }
-      const imagePath = `img/${image.name + uuidv4()}`;
-      const imageRef = ref(storage,imagePath);
-      const uploadFile = uploadBytesResumable(imageRef, image);
+  // Upload file with path traversal and type check
+  const uploadFile = () => {
+    if (image === null) {
+      return;
+    }
+    // Only allow image types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(image.type)) {
+      Swal.fire({
+        text: "Invalid file type. Only images are allowed.",
+        icon: "error",
+        customClass: {
+          container: 'my-swal',
+          confirmButton: 'my-swal-button'
+        }
+      });
+      return;
+    }
+    // Prevent path traversal by checking file name
+    if (!isSafeFileName(image.name)) {
+      Swal.fire({
+        text: "Invalid file name.",
+        icon: "error",
+        customClass: {
+          container: 'my-swal',
+          confirmButton: 'my-swal-button'
+        }
+      });
+      return;
+    }
+    const imagePath = `img/${image.name + uuidv4()}`;
+    const imageRef = ref(storage,imagePath);
+    const uploadFile = uploadBytesResumable(imageRef, image);
   
-      uploadFile.on('state_changed', (snapshot) => {
-        const progress = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
-        setProgress(progress)
-      }, (err) => {
-        console.log("error while uploading file", err);
-      }, () => {
-        setProgress(0);
-        getDownloadURL(uploadFile.snapshot.ref).then((downloadURL) => {
-          console.log('File available at', downloadURL);
+    uploadFile.on('state_changed', (snapshot) => {
+      const progress = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
+      setProgress(progress)
+    }, (err) => {
+      console.log("error while uploading file", err);
+    }, () => {
+      setProgress(0);
+      getDownloadURL(uploadFile.snapshot.ref).then((downloadURL) => {
+        console.log('File available at', downloadURL);
         
         // Delete the previous image
         if (oldImagePath) {
@@ -177,44 +255,72 @@ export default function Profile() {
     }
 
 const handleSubmit = (e) => {
-   e.preventDefault();
-   const dob = new Date(data.dob);
-    const today = new Date();
- 
-   if (dob >= today) {
-    Swal.fire({ position: "top",
-    text:"Date of birth must be in the past.",
-    customClass: {
-      container: 'my-swal',
-      confirmButton: 'my-swal-button' 
+    e.preventDefault();
+    // Validate all fields before submission
+    if (
+      !validateName(data.fname) ||
+      !validateName(data.lname) ||
+      !validateEmail(data.email) ||
+      !validateDate(data.dob)
+    ) {
+      Swal.fire({
+        position: "top",
+        text: "Please provide valid input for all required fields.",
+        icon: "error",
+        customClass: {
+          container: 'my-swal',
+          confirmButton: 'my-swal-button'
+        }
+      });
+      return;
     }
-    })
-   // window.alert('Date of birth must be in the past.');
-    return;
-  }
+    const dob = new Date(data.dob);
+    const today = new Date();
+    if (dob >= today) {
+      Swal.fire({
+        position: "top",
+        text: "Date of birth must be in the past.",
+        customClass: {
+          container: 'my-swal',
+          confirmButton: 'my-swal-button'
+        }
+      });
+      return;
+    }
+    // Only send allowed fields to backend (prevent mass assignment)
+    const allowedFields = [
+      "fname", "lname", "dob", "gender", "email", "jobtitle", "department", "employmentType"
+    ];
+    const safeData = {};
+    allowedFields.forEach(field => {
+      safeData[field] = sanitizeInput(data[field]);
+    });
     //update photo after the click save button it not uersfrienly so commented it
     // uploadFile();
-    const { imageUrl, ...restOfData } = data;
-    //other details
-   axios
-    .put(`${BASE_URL}updateuser`, restOfData, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((response) => {
-      Swal.fire({ position: "top", text: response.data.msg 
-      ,customClass: {container: 'my-swal',
-      confirmButton: 'my-swal-button'} }).then((result)=>{
-        if(result.isConfirmed){
-          fetchUserData();
-        }
+    axios
+      .put(`${BASE_URL}updateuser`, safeData, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-     // window.alert(response.data.msg);
-      console.log(response.data);
+      .then((response) => {
+        Swal.fire({
+          position: "top",
+          text: response.data.msg,
+          customClass: {
+            container: 'my-swal',
+            confirmButton: 'my-swal-button'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            fetchUserData();
+          }
+        });
+        // window.alert(response.data.msg);
+        console.log(response.data);
 
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
  };
  
   return (
@@ -304,7 +410,7 @@ const handleSubmit = (e) => {
                       }}
                     >
                       <Input size="sm" value={data.fname} 
-                       onChange={e => setData({ ...data, fname: e.target.value })} 
+                       onChange={e => handleInputChange("fname", e.target.value)} 
                        />
                     </FormControl>
                     <FormControl
@@ -316,7 +422,7 @@ const handleSubmit = (e) => {
                       <Input
                         size="sm"
                         value={data.lname}
-                        onChange={e => setData({ ...data, lname: e.target.value })} 
+                        onChange={e => handleInputChange("lname", e.target.value)} 
                         sx={{ flexGrow: 1 }}
                       />
                     </FormControl>
@@ -335,7 +441,7 @@ const handleSubmit = (e) => {
                         size="sm"
                         type="email"
                         value={data.email}
-                        onChange={e => setData({ ...data, email: e.target.value })}
+                        onChange={e => handleInputChange("email", e.target.value)}
                         startDecorator={<EmailRoundedIcon />}
                         sx={{ flexGrow: 1 }}
                       />
@@ -350,7 +456,7 @@ const handleSubmit = (e) => {
                         <Input
                       size="sm"
                       value={data.gender}
-                      onChange={e => setData({ ...data, gender: e.target.value })}
+                      onChange={e => handleInputChange("gender", e.target.value)}
                       type="text"
                       fullWidth
                   
@@ -362,7 +468,7 @@ const handleSubmit = (e) => {
                           size="sm"
                           value={data.dob}
                           type="date"
-                          onChange={e => setData({ ...data, dob: e.target.value })}
+                          onChange={e => handleInputChange("dob", e.target.value)}
                           fullWidth
                        
                         />
@@ -432,7 +538,8 @@ const handleSubmit = (e) => {
                       }}
                     >
                       <Input size="sm" value={data.fname}
-                      onChange={e => setData({ ...data, fname: e.target.value })} />
+                      onChange={e => handleInputChange("fname", e.target.value)}
+                      />
                     </FormControl>
                     <FormControl
                       sx={{
@@ -444,7 +551,8 @@ const handleSubmit = (e) => {
                       }}
                     >
                       <Input size="sm" value={data.lname} 
-                      onChange={e => setData({ ...data, lname: e.target.value })}/>
+                      onChange={e => handleInputChange("lname", e.target.value)}
+                      />
                     </FormControl>
                   </Stack>
                 </Stack>
@@ -460,7 +568,7 @@ const handleSubmit = (e) => {
                     type="email"
                     startDecorator={<EmailRoundedIcon />}
                     value={data.email}
-                    onChange={e => setData({ ...data, email: e.target.value })}
+                    onChange={e => handleInputChange("email", e.target.value)}
                     sx={{ flexGrow: 1 }}
                   />
                 </FormControl>
@@ -472,7 +580,7 @@ const handleSubmit = (e) => {
                       size="sm"
                       value={data.gender}
                       type="text"
-                      onChange={e => setData({ ...data, gender: e.target.value })}
+                      onChange={e => handleInputChange("gender", e.target.value)}
                       fullWidth
                   
                     />
@@ -485,7 +593,7 @@ const handleSubmit = (e) => {
                       size="sm"
                       value={data.dob}
                       type="date"
-                      onChange={e => setData({ ...data, dob: e.target.value })}
+                      onChange={e => handleInputChange("dob", e.target.value)}
                       fullWidth
                   
                     />
@@ -509,7 +617,7 @@ const handleSubmit = (e) => {
                       size="sm"
                       value={data.jobtitle}
                       type="text"
-                      onChange={e => setData({ ...data, jobtitle: e.target.value })}
+                      onChange={e => handleInputChange("jobtitle", e.target.value)}
                       fullWidth
                   
                     />
@@ -519,7 +627,7 @@ const handleSubmit = (e) => {
                         <Input
                           size="sm"
                           value={data.department}
-                          onChange={e => setData({ ...data, department: e.target.value })}
+                          onChange={e => handleInputChange("department", e.target.value)}
                           type="text"
                           fullWidth
                        
@@ -534,7 +642,7 @@ const handleSubmit = (e) => {
                       size="sm"
                       value={data.employmentType}
                       type="text"
-                      onChange={e => setData({ ...data, employmentType: e.target.value })}
+                      onChange={e => handleInputChange("employmentType", e.target.value)}
                       fullWidth
                      />
               </FormControl>
@@ -558,6 +666,12 @@ const handleSubmit = (e) => {
     </>
   );
 }
+
+// --- BACKEND SECURITY REMINDERS (not in this file, but required) ---
+// 1. Use express-validator and express-mongo-sanitize on all profile update endpoints.
+// 2. Whitelist allowed fields on backend to prevent mass assignment.
+// 3. Validate and sanitize file uploads on backend (type, name, path traversal).
+// 4. Never trust client-side validation alone.
 
 
 
