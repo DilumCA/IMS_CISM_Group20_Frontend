@@ -56,7 +56,19 @@ export default function InternProfile() {
   const [oldImagePath, setOldImagePath] = useState(null);
   const { fetchUserData } = useUserData();
   const [role, setRole] = useState("");
-
+ useEffect(() => {
+    axios
+      .get(`${BASE_URL}user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((result) => {
+        setData(result.data.user);
+        setOriginalData(result.data.user);
+        setImageUrl(result.data.user.imageUrl);
+        console.log(result.data.user.imageUrl);
+      })
+      .catch((err) => console.log(err));
+  }, []);
   useEffect(() => {
   setRole(userRole);
 }, [userRole]);
@@ -85,19 +97,7 @@ if (userRole !== "intern") {
   return null;
 }
 
-  useEffect(() => {
-    axios
-      .get(`${BASE_URL}user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((result) => {
-        setData(result.data.user);
-        setOriginalData(result.data.user);
-        setImageUrl(result.data.user.imageUrl);
-        console.log(result.data.user.imageUrl);
-      })
-      .catch((err) => console.log(err));
-  }, []); //If there is an error during the GET request, this block of code is executed. It logs the error to the console.
+  //If there is an error during the GET request, this block of code is executed. It logs the error to the console.
 
   const handleCancel = () => {
     // Reset the form data to the original data
@@ -105,70 +105,63 @@ if (userRole !== "intern") {
   };
 
   // Upload file
-  const uploadFile = () => {
-    if (image === null) {
-      return;
-    }
+const uploadFile = async () => {
+  if (image === null) return;
+
+  try {
     const fileExtension = image.name.split(".").pop().toLowerCase();
     const imagePath = `img/${uuidv4()}.${fileExtension}`;
     const imageRef = ref(storage, imagePath);
-    const uploadFile = uploadBytesResumable(imageRef, image);
 
-    uploadFile.on(
-      "state_changed",
-      (snapshot) => {
-        const progress = Math.round(
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
-        );
-        setProgress(progress);
-      },
-      (err) => {
-        console.log("error while uploading file", err);
-      },
-      () => {
-        setProgress(0);
-        getDownloadURL(uploadFile.snapshot.ref).then((downloadURL) => {
-          console.log("File available at", downloadURL);
-          console.log(progress);
-          // Delete the previous image
-          if (oldImagePath) {
-            const oldImageRef = ref(storage, oldImagePath);
-            deleteObject(oldImageRef)
-              .then(() => {
-                console.log("Old image deleted");
-              })
-              .catch((error) => {
-                console.log("Failed to delete old image", error);
-              });
-          }
-          console.log(imagePath);
-          // Save the path of the uploaded image
-          setOldImagePath(imagePath);
-          console.log(oldImagePath);
-          setImageUrl(downloadURL);
-          console.log(downloadURL);
-          console.log(imageUrl);
+    const uploadTask = uploadBytesResumable(imageRef, image);
 
-          axios
-            .put(
-              `${BASE_URL}uploadImage`,
-              { imageUrl: downloadURL, userId: localStorage.getItem("userId") },
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              },
-            )
-            .then((response) => {
-              console.log(response.data.msg);
-              fetchUserData();
-            })
-            .catch((error) => {
-              console.log(error);
-            });
-        });
-        setImage(null);
-      },
+    // Wait for upload to finish and get download URL
+    await new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = Math.round(
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          );
+          setProgress(progress);
+        },
+        (err) => {
+          console.log("error while uploading file", err);
+          reject(err);
+        },
+        () => resolve()
+      );
+    });
+
+    setProgress(0);
+    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+    // Delete the previous image if exists
+    if (oldImagePath) {
+      try {
+        const oldImageRef = ref(storage, oldImagePath);
+        await deleteObject(oldImageRef);
+        console.log("Old image deleted");
+      } catch (error) {
+        console.log("Failed to delete old image", error);
+      }
+    }
+
+    setOldImagePath(imagePath);
+    setImageUrl(downloadURL);
+
+    await axios.put(
+      `${BASE_URL}uploadImage`,
+      { imageUrl: downloadURL, userId: localStorage.getItem("userId") },
+      { headers: { Authorization: `Bearer ${token}` } }
     );
-  };
+
+    fetchUserData();
+    setImage(null);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   const handleSubmit = (e) => {
     e.preventDefault();
