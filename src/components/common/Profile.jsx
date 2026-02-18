@@ -38,7 +38,7 @@ import { validateFile } from '../../utils/fileValidation';
 
 // Validation functions
 const validateEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+   /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
 
 const validateName = (name) =>
   /^[a-zA-Z\s'-]{2,50}$/.test(name);
@@ -213,7 +213,7 @@ export default function Profile() {
     const uploadFile = uploadBytesResumable(imageRef, image);
     const fileExtension = image.name.split('.').pop().toLowerCase();
 const imagePath = `img/${uuidv4()}.${fileExtension}`;
-const imageRef = ref(storage, imagePath);1
+const imageRef = ref(storage, imagePath);
   
     uploadFile.on('state_changed', (snapshot) => {
       const progress = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);

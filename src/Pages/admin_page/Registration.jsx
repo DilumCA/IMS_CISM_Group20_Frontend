@@ -9,7 +9,7 @@ import DOMPurify from 'dompurify';
 
 // Validation functions
 const validateEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+   /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
 
 const validateName = (name) =>
   /^[a-zA-Z\s'-]{2,50}$/.test(name);
